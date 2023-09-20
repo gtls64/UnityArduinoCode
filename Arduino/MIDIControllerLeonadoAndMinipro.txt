@@ -1,0 +1,141 @@
+/*
+  Based on Sketch built by Gustavo Silveira (aka Music Nerd)
+  Modified by Dolce Wang
+
+
+
+*/
+
+
+
+
+// LIBRARY
+
+#include "MIDIUSB.h"
+
+// BUTTONS
+const int NButtons = 8;
+const int buttonPin[NButtons] = {2, 3, 4, 5,6, 7, 14, 15};
+
+int buttonCState[NButtons] = {};
+int buttonPState[NButtons] = {};
+
+
+// debounce
+unsigned long lastDebounceTime[NButtons] = {0};
+unsigned long debounceDelay = 50;
+
+
+// POTENTIOMETERS
+const int NPots = 5; //slides and pot number
+const int potPin[NPots] = {A0, A1, A2, A10, A9};
+int potCState[NPots] = {0};
+int potPState[NPots] = {0};
+int potVar = 0;
+
+int midiCState[NPots] = {0};
+int midiPState[NPots] = {0};
+
+const int TIMEOUT = 300;
+const int varThreshold = 10;
+boolean potMoving = true;
+unsigned long PTime[NPots] = {0};
+unsigned long timer[NPots] = {0};
+
+// MIDI Assignments
+byte midiCh = 1;
+byte note = 36;
+byte cc = 1;
+
+
+// SETUP
+void setup() {
+
+  // Baud Rate
+  // 31250 for MIDI class compliant | 115200 for Hairless MIDI
+
+  // Buttons
+  // Initialize buttons with pull up resistors
+  for (int i = 0; i < NButtons; i++) {
+    pinMode(buttonPin[i], INPUT_PULLUP);
+  }
+
+}
+
+////
+// LOOP
+void loop() {
+
+  buttons();
+  potentiometers();
+
+}
+
+////
+// BUTTONS
+void buttons() {
+
+  for (int i = 0; i < NButtons; i++) {
+
+    buttonCState[i] = digitalRead(buttonPin[i]);  // read pins from arduino
+
+    if ((millis() - lastDebounceTime[i]) > debounceDelay) {
+
+      if (buttonPState[i] != buttonCState[i]) {
+        lastDebounceTime[i] = millis();
+
+        if (buttonCState[i] == LOW) {
+
+          // Sends the MIDI note ON
+
+         // use if using with ATmega32U4 (micro, pro micro, leonardo...)
+          noteOn(midiCh, note + i, 127);  // channel, note, velocity
+          MidiUSB.flush();
+
+
+        }
+        else {
+
+          // Sends the MIDI note OFF accordingly to the chosen board
+
+          // use if using with ATmega32U4 (micro, pro micro, leonardo...)
+          noteOn(midiCh, note + i, 0);  // channel, note, velocity
+          MidiUSB.flush();
+
+        }
+        buttonPState[i] = buttonCState[i];
+      }
+    }
+  }
+}
+
+////
+// POTENTIOMETERS
+void potentiometers() {
+
+
+  for (int i = 0; i < NPots; i++) { // Loops through all the potentiometers
+
+    potCState[i] = analogRead(potPin[i]); // reads the pins from arduino
+
+    midiCState[i] = map(potCState[i], 0, 1023, 0, 127); // Maps the reading of the potCState to a value usable in midi
+
+    potVar = abs(potCState[i] - potPState[i]); // Calculates the absolute value between the difference between the current and previous state of the pot
+
+    if (potVar > varThreshold) { // Opens the gate if the potentiometer variation is greater than the threshold
+      PTime[i] = millis(); // Stores the previous time
+    }
+
+    timer[i] = millis() - PTime[i]; // Resets the timer 11000 - 11000 = 0ms
+
+    if (timer[i] < TIMEOUT) { // If the timer is less than the maximum allowed time it means that the potentiometer is still moving
+      potMoving = true;
+    }
+    else {
+      potMoving = false;
+    }
+
+    if (potMoving == true) { // If the potentiometer is still moving, send the change control
+      if (midiPState[i] != midiCState[i]) {
+
+&

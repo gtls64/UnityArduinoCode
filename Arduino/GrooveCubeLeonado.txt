@@ -1,0 +1,78 @@
+#include <Wire.h>
+#include <MPU6050.h>
+#include "Keyboard.h"
+
+#include <FastLED.h>
+
+#define NUM_LEDS 5 // The number of LEDs in the strip
+#define DATA_PIN 6 // The pin that the data line is connected to
+
+CRGB leds[NUM_LEDS];
+
+MPU6050 mpu;
+int lastSideUp = -1;
+
+void setup() {
+  Wire.begin();
+  Serial.begin(9600);
+  mpu.initialize();
+  Keyboard.begin();
+  FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS);
+}
+
+void loop() {
+
+  lightUpAllLEDs(CRGB::Blue); // Light up all LEDs red
+
+  int16_t ax, ay, az;
+  int16_t gx, gy, gz;
+
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+  float accelX = ax / 16384.0;
+  float accelY = ay / 16384.0;
+  float accelZ = az / 16384.0;
+
+  float highestAccel = max(max(abs(accelX), abs(accelY)), abs(accelZ));
+  float lowestAccel = min(min(abs(accelX), abs(accelY)), abs(accelZ));
+
+  int sideUp = -1;
+
+  if (highestAccel == abs(accelX)) {
+    sideUp = (accelX > 0) ? 0 : 3;
+  } else if (highestAccel == abs(accelY)) {
+    sideUp = (accelY > 0) ? 1 : 2;
+  } else {
+    sideUp = (accelZ > 0) ? 5 : 4;
+  }
+
+  if (sideUp != lastSideUp) {
+    lastSideUp = sideUp;
+
+    char key;
+
+    switch (sideUp) {
+      case 0: key = 'Q'; break;
+      case 1: key = 'W'; break;
+      case 2: key = 'E'; break;
+      case 3: key = 'R'; break;
+      case 4: key = 'T'; break;
+      case 5: key = 'Y'; break;
+    }
+
+    Keyboard.press(key);
+    delay(100);
+    Keyboard.release(key);
+  }
+
+  delay(10);
+}
+
+void lightUpAllLEDs(CRGB color) {
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = color;
+    }
+    FastLED.show();
+}
+
+//jhfddddddGASARYEYQYWYQY

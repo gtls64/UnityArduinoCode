@@ -1,0 +1,40 @@
+#includeWire.h
+#includeMPU6050.h
+MPU6050 mpu;
+
+void setup() {
+  Wire.begin();
+  Serial.begin(9600);
+  while(!Serial);
+  mpu.initialize();
+  Serial.println(MPU6050 Initialized Successfully!);
+  delay(2000);
+}
+
+void loop() {
+  float gyroX = mpu.getRotationX();
+  float gyroY = mpu.getRotationY();
+  float gyroZ = mpu.getRotationZ();
+
+   Get the absolute value of the rotation value to ensure it's positive
+  gyroX = abs(gyroX);
+  gyroY = abs(gyroY);
+  gyroZ = abs(gyroZ);
+
+   Wrap the value to the range of 0 to 359 degrees
+  gyroX = fmod(gyroX, 360);
+  gyroY = fmod(gyroY, 360);
+  gyroZ = fmod(gyroZ, 360);
+
+  Serial.print(X );
+  Serial.print(gyroX);
+  Serial.print( Y );
+  Serial.print(gyroY);
+  Serial.print( Z );
+  Serial.println(gyroZ);
+
+  delay(1000);
+}
+
+
+

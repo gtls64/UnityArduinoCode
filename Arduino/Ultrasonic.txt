@@ -1,0 +1,59 @@
+#include <MIDIUSB.h>
+
+// Define the pins for the ultrasonic sensor
+const int trigPin = 9;
+const int echoPin = 10;
+
+// Define the MIDI note to play and the velocity to use
+const int note = 60; // C4
+const int velocity = 127;
+
+// Define the maximum and minimum distances to trigger a note
+const int maxDistance = 50; // 50 cm
+const int minDistance = 10; // 10 cm
+
+// Define the channel to use for the MIDI note
+const int channel = 1; // MIDI channel 1
+
+void setup() {
+  // Initialize the ultrasonic sensor pins
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+void loop() {
+  // Trigger a measurement from the ultrasonic sensor
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Calculate the distance based on the time it takes for the sound wave to return
+  long duration = pulseIn(echoPin, HIGH);
+  int distance = duration * 0.034 / 2;
+  
+  // If the distance is within the trigger range, send a MIDI note on message
+  if (distance >= minDistance && distance <= maxDistance) {
+    noteOn(channel, note, velocity);
+    delay(100); // Delay to avoid sending multiple notes
+  }
+  
+  // Otherwise, send a MIDI note off message
+  else {
+    noteOff(channel, note, velocity);
+    delay(100); // Delay to avoid sending multiple notes
+  }
+}
+
+// Send a MIDI note on message
+void noteOn(byte channel, byte pitch, byte velocity) {
+  midiEventPacket_t noteOn = {0x09, 0x90 | channel, pitch, velocity};
+  MidiUSB.sendMIDI(noteOn);
+}
+
+// Send a MIDI note off message
+void noteOff(byte channel, byte pitch, byte velocity) {
+  midiEventPacket_t noteOff = {0x08, 0x80 | channel, pitch, velocity};
+  MidiUSB.sendMIDI(noteOff);
+}
